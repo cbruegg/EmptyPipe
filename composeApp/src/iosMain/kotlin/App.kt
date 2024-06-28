@@ -1,6 +1,9 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
@@ -85,6 +88,27 @@ fun App() {
                         }
                     }
                 }
+            }
+            AvailableFiles(downloadManager)
+        }
+    }
+}
+
+@Composable
+private fun AvailableFiles(downloadManager: DownloadManager) {
+    val scope = rememberCoroutineScope()
+    var downloadedVideos: List<DownloadManager.VideoDownload>? by remember { mutableStateOf(null) }
+
+    scope.launch { downloadedVideos = downloadManager.findDownloads() }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(downloadedVideos ?: emptyList(), key = { it.id }) { video ->
+            Button(onClick = {
+                println(video.title)
+            }) {
+                Text(video.title)
             }
         }
     }
