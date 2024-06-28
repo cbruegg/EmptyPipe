@@ -32,6 +32,7 @@ import platform.Foundation.NSUserDomainMask
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
+    val downloadManager = DownloadManager()
 
     MaterialTheme {
         var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
@@ -125,35 +126,7 @@ fun App() {
                             val selectedAudioStreamIndex =
                                 options.usableAudioStreamIndices[selectedAudioIndex]
 
-                            val documentDir = (NSSearchPathForDirectoriesInDomains(
-                                NSDocumentDirectory,
-                                NSUserDomainMask,
-                                true
-                            )[0] as NSString).toString().toPath()
-                            val videoDir = documentDir / "video-${options.videoId}"
-                            val videoFile = videoDir / "video.dat"
-                            val audioFile = videoDir / "audio.dat"
-
-                            val fs = FileSystem.SYSTEM
-                            fs.createDirectories(videoDir)
-                            scope.launch {
-                                fs.write(videoFile) {
-                                    val videoSink = this
-                                    fs.write(audioFile) {
-                                        val audioSink = this
-                                        downloadYouTubeVideo(
-                                            options,
-                                            selectedVideoStreamIndex,
-                                            selectedAudioStreamIndex,
-                                            videoSink,
-                                            audioSink,
-                                            videoProgressPercentageCallback = { percentage -> println("Video $percentage %") },
-                                            audioProgressPercentageCallback = { percentage -> println("Audio $percentage %") }
-                                        )
-                                    }
-                                }
-                            }
-
+                            downloadManager.download(scope, options, selectedVideoStreamIndex, selectedAudioStreamIndex)
                         }) {
                             Text("Download")
                         }
