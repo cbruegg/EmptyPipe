@@ -114,17 +114,24 @@ data class PipedVideoMetadata(
 
 @Serializable
 data class VideoStream(
-    val url: String,
-    val format: String,
-    val quality: String,
-    val codec: String?,
+    override val url: String,
+    override val format: String,
+    override val quality: String,
+    override val codec: String?,
     val videoOnly: Boolean
-)
+) : Stream
 
 @Serializable
 data class AudioStream(
-    val url: String,
-    val format: String,
-    val quality: String,
+    override val url: String,
+    override val format: String,
+    override val quality: String,
+    override val codec: String?
+) : Stream
+
+interface Stream {
+    val url: String
+    val format: String
+    val quality: String
     val codec: String?
-)
+}
