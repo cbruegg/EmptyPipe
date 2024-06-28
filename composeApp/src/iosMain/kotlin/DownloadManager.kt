@@ -1,5 +1,4 @@
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -28,29 +27,26 @@ class DownloadManager {
         return TargetFiles(videoFile, audioFile)
     }
 
-    fun download(
-        scope: CoroutineScope,
+    suspend fun download(
         options: PipedVideoDownloadOptions,
         selectedVideoStreamIndex: Int,
         selectedAudioStreamIndex: Int
     ) {
         val (videoFile, audioFile) = prepareDownload(options.videoId)
 
-        scope.launch {
-            fs.write(videoFile) {
-                val videoSink = this
-                fs.write(audioFile) {
-                    val audioSink = this
-                    downloadYouTubeVideo(
-                        options,
-                        selectedVideoStreamIndex,
-                        selectedAudioStreamIndex,
-                        videoSink,
-                        audioSink,
-                        videoProgressPercentageCallback = { percentage -> println("Video $percentage %") },
-                        audioProgressPercentageCallback = { percentage -> println("Audio $percentage %") }
-                    )
-                }
+        fs.write(videoFile) {
+            val videoSink = this
+            fs.write(audioFile) {
+                val audioSink = this
+                downloadYouTubeVideo(
+                    options,
+                    selectedVideoStreamIndex,
+                    selectedAudioStreamIndex,
+                    videoSink,
+                    audioSink,
+                    videoProgressPercentageCallback = { percentage -> println("Video $percentage %") },
+                    audioProgressPercentageCallback = { percentage -> println("Audio $percentage %") }
+                )
             }
         }
     }

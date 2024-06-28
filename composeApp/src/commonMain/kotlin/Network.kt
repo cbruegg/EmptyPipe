@@ -24,7 +24,7 @@ private val http = HttpClient {
     }
 }
 
-private val youtubeVideoIdRegex = Regex("""https://(?:.*\.)youtube.com/watch\?.*v=(\w+)""")
+private val youtubeVideoIdRegex = Regex("""https://(?:.*\.)youtube.com/watch\?.*v=([\w-]+)""")
 
 suspend fun fetchYouTubeDownloadOptions(
     url: String,
@@ -32,13 +32,12 @@ suspend fun fetchYouTubeDownloadOptions(
 ): PipedVideoDownloadOptions {
     val videoId = youtubeVideoIdRegex.find(url)?.groupValues?.get(1) ?: error("Invalid URL: $url")
     val pipedVideoMetadataUrl = "${appConfiguration.pipedApiInstanceUrl}/streams/$videoId"
+    println("Getting metadata from $pipedVideoMetadataUrl")
     val pipedVideoMetadata = http.get(pipedVideoMetadataUrl).body<PipedVideoMetadata>()
     return PipedVideoDownloadOptions(
         title = pipedVideoMetadata.title,
         videoId = videoId,
-        usableVideoStreamIndices = pipedVideoMetadata.videoStreams.indices.toList(), // TODO Actually filter
-        usableAudioStreamIndices = pipedVideoMetadata.audioStreams.indices.toList(), // TODO Actually filter
-        metadata = pipedVideoMetadata
+        metadata = pipedVideoMetadata // TODO Filter out unusable options on iOS
     )
 }
 
@@ -100,8 +99,6 @@ private suspend fun ByteReadChannel.copyTo(dst: BufferedSink) {
 data class PipedVideoDownloadOptions(
     val title: String,
     val videoId: String,
-    val usableVideoStreamIndices: List<Int>, // TODO Maybe get rid of this and just pre-filter the metadata for usable codecs...
-    val usableAudioStreamIndices: List<Int>, // TODO Maybe get rid of this and just pre-filter the metadata for usable codecs...
     val metadata: PipedVideoMetadata
 )
 

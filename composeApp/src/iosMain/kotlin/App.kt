@@ -17,10 +17,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalForeignApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
@@ -28,6 +26,7 @@ fun App() {
 
     MaterialTheme {
         var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
+        var downloadFailure: Exception? by remember { mutableStateOf(null) }
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Button(onClick = {
                 scope.launch {
@@ -47,11 +46,6 @@ fun App() {
                         Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val videoOptions =
-                            options.usableVideoStreamIndices.map { options.metadata.videoStreams[it] }
-                        val audioOptions =
-                            options.usableAudioStreamIndices.map { options.metadata.audioStreams[it] }
-
                         // dropdown for videoOptions
                         var selectedVideoIndex by remember { mutableStateOf(0) }
                         var selectedAudioIndex by remember { mutableStateOf(0) }
@@ -61,29 +55,33 @@ fun App() {
                         StreamSelectorDropdown(
                             videoExpanded,
                             { videoExpanded = it },
-                            videoOptions,
+                            options.metadata.videoStreams,
                             selectedVideoIndex,
                             { selectedVideoIndex = it })
                         StreamSelectorDropdown(
                             audioExpanded,
                             { audioExpanded = it },
-                            audioOptions,
+                            options.metadata.audioStreams,
                             selectedAudioIndex,
                             { selectedAudioIndex = it })
                         Button(onClick = {
-                            val selectedVideoStreamIndex =
-                                options.usableVideoStreamIndices[selectedVideoIndex]
-                            val selectedAudioStreamIndex =
-                                options.usableAudioStreamIndices[selectedAudioIndex]
-
-                            downloadManager.download(
-                                scope,
-                                options,
-                                selectedVideoStreamIndex,
-                                selectedAudioStreamIndex
-                            )
+                            scope.launch {
+                                try {
+                                    downloadFailure = null
+                                    downloadManager.download(
+                                        options,
+                                        selectedVideoIndex,
+                                        selectedAudioIndex
+                                    )
+                                } catch (e: Exception) {
+                                    downloadFailure = e
+                                }
+                            }
                         }) {
                             Text("Download")
+                        }
+                        downloadFailure?.let { failure ->
+                            Text("Download failed: ${failure.message}")
                         }
                     }
                 }
