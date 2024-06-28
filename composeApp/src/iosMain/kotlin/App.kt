@@ -9,10 +9,12 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ExposedDropdownMenuBox
 import androidx.compose.material.ExposedDropdownMenuDefaults
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,11 +51,13 @@ fun App() {
                         Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // dropdown for videoOptions
                         var selectedVideoIndex by remember { mutableStateOf(0) }
                         var selectedAudioIndex by remember { mutableStateOf(0) }
                         var videoExpanded by remember { mutableStateOf(false) }
                         var audioExpanded by remember { mutableStateOf(false) }
+
+                        var videoDownloadProgress by remember { mutableStateOf(-1) }
+                        var audioDownloadProgress by remember { mutableStateOf(-1) }
 
                         StreamSelectorDropdown(
                             videoExpanded,
@@ -71,20 +75,36 @@ fun App() {
                             scope.launch {
                                 try {
                                     downloadFailure = null
+                                    videoDownloadProgress = 0
+                                    audioDownloadProgress = 0
                                     downloadManager.download(
                                         options,
                                         selectedVideoIndex,
-                                        selectedAudioIndex
+                                        selectedAudioIndex,
+                                        videoProgressPercentageCallback = {
+                                            percentage -> println("Video $percentage %") },
+                                        audioProgressPercentageCallback = {
+                                            percentage -> println("Audio $percentage %") }
                                     )
                                 } catch (e: Exception) {
                                     downloadFailure = e
                                 }
+                                videoDownloadProgress = -1
+                                audioDownloadProgress = -1
                             }
                         }) {
                             Text("Download")
                         }
                         downloadFailure?.let { failure ->
                             Text("Download failed: ${failure.message}")
+                        }
+
+                        if (videoDownloadProgress != -1 && audioDownloadProgress != -1) {
+                            val totalDownloadProgress = videoDownloadProgress + audioDownloadProgress
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                progress = totalDownloadProgress / 200f
+                            )
                         }
                     }
                 }
@@ -96,10 +116,12 @@ fun App() {
 
 @Composable
 private fun AvailableFiles(downloadManager: DownloadManager) {
-    val scope = rememberCoroutineScope()
     var downloadedVideos: List<DownloadManager.VideoDownload>? by remember { mutableStateOf(null) }
 
-    scope.launch { downloadedVideos = downloadManager.findDownloads() }
+    // TODO Refresh whenever a download completes
+    LaunchedEffect(Unit) {
+        downloadedVideos = downloadManager.findDownloads()
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize()

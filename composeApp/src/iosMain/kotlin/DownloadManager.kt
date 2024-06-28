@@ -58,7 +58,9 @@ class DownloadManager {
     suspend fun download(
         options: PipedVideoDownloadOptions,
         selectedVideoStreamIndex: Int,
-        selectedAudioStreamIndex: Int
+        selectedAudioStreamIndex: Int,
+        videoProgressPercentageCallback: (Int) -> Unit,
+        audioProgressPercentageCallback: (Int) -> Unit
     ) {
         val (videoFile, audioFile) = prepareDownload(options.videoId, options.title)
 
@@ -72,8 +74,8 @@ class DownloadManager {
                     selectedAudioStreamIndex,
                     videoSink,
                     audioSink,
-                    videoProgressPercentageCallback = { percentage -> println("Video $percentage %") },
-                    audioProgressPercentageCallback = { percentage -> println("Audio $percentage %") }
+                    videoProgressPercentageCallback,
+                    audioProgressPercentageCallback
                 )
             }
         }
