@@ -81,10 +81,14 @@ fun App() {
                                         options,
                                         selectedVideoIndex,
                                         selectedAudioIndex,
-                                        videoProgressPercentageCallback = {
-                                            percentage -> println("Video $percentage %") },
-                                        audioProgressPercentageCallback = {
-                                            percentage -> println("Audio $percentage %") }
+                                        videoProgressPercentageCallback = { percentage ->
+                                            println("Video $percentage %")
+                                            videoDownloadProgress = percentage
+                                        },
+                                        audioProgressPercentageCallback = { percentage ->
+                                            println("Audio $percentage %")
+                                            audioDownloadProgress = percentage
+                                        }
                                     )
                                 } catch (e: Exception) {
                                     downloadFailure = e
@@ -100,7 +104,8 @@ fun App() {
                         }
 
                         if (videoDownloadProgress != -1 && audioDownloadProgress != -1) {
-                            val totalDownloadProgress = videoDownloadProgress + audioDownloadProgress
+                            val totalDownloadProgress =
+                                videoDownloadProgress + audioDownloadProgress
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth(),
                                 progress = totalDownloadProgress / 200f
