@@ -1,6 +1,8 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
@@ -17,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,23 +40,38 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
             modifier = Modifier.fillMaxWidth()
         )
 
-        Button(onClick = {
-            scope.launch {
-                fetchDownloadOptionsError = null
-                try {
-                    downloadOptions = fetchYouTubeDownloadOptions(
-                        url = url,
-                        appConfiguration = AppConfiguration(
-                            pipedApiInstanceUrl = "***REMOVED***"
-                        )
-                    )
+        Row {
+            Button(onClick = {
+                scope.launch {
                     fetchDownloadOptionsError = null
-                } catch (e: Exception) {
-                    fetchDownloadOptionsError = e
+                    try {
+                        downloadOptions = fetchYouTubeDownloadOptions(
+                            url = url,
+                            appConfiguration = AppConfiguration(
+                                pipedApiInstanceUrl = "***REMOVED***"
+                            )
+                        )
+                        fetchDownloadOptionsError = null
+                    } catch (e: Exception) {
+                        fetchDownloadOptionsError = e
+                    }
+                }
+            }) {
+                Text("Fetch download options")
+            }
+            if (url.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        url = ""
+                        downloadOptions = null
+                        fetchDownloadOptionsError = null
+                        downloadFailure = null
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Text("Clear")
                 }
             }
-        }) {
-            Text("Fetch download options")
         }
         fetchDownloadOptionsError?.let { error ->
             Text("Error: ${error.message}")
