@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import platform.Foundation.NSUserDefaults
 
 @Composable
 fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManager) {
@@ -44,12 +45,11 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
                 scope.launch {
                     fetchDownloadOptionsError = null
                     try {
-                        downloadOptions = fetchYouTubeDownloadOptions(
-                            url = url,
-                            appConfiguration = AppConfiguration(
-                                pipedApiInstanceUrl = "https://pipedapi.kavin.rocks"
-                            )
-                        )
+                        val appConfiguration =
+                            AppConfiguration.loadFrom(NSUserDefaults.standardUserDefaults)
+                        check(!appConfiguration.pipedApiInstanceUrl.isNullOrBlank()) { "Piped instance URL is not set" }
+
+                        downloadOptions = fetchYouTubeDownloadOptions(url, appConfiguration)
                         fetchDownloadOptionsError = null
                     } catch (e: Exception) {
                         fetchDownloadOptionsError = e

@@ -13,6 +13,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Download
 import androidx.compose.material.icons.sharp.PlayCircle
+import androidx.compose.material.icons.sharp.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 enum class AppTab(val icon: ImageVector, val description: String) {
-    Download(Icons.Sharp.Download, "Download"), DownloadedVideos(Icons.Sharp.PlayCircle, "Videos")
+    Download(Icons.Sharp.Download, "Download"),
+    DownloadedVideos(Icons.Sharp.PlayCircle, "Videos"),
+    Configuration(Icons.Sharp.Settings, "Configuration")
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -35,7 +38,7 @@ fun App() {
 
     MaterialTheme {
         var selectedAppTab by remember { mutableStateOf(AppTab.Download) }
-        val pagerState = rememberPagerState(pageCount = { 2 })
+        val pagerState = rememberPagerState(pageCount = { AppTab.entries.size })
         val scope = rememberCoroutineScope()
         Column(Modifier.fillMaxSize().padding(8.dp)) {
             HorizontalPager(
@@ -43,7 +46,7 @@ fun App() {
                 modifier = Modifier.fillMaxSize().weight(1f),
                 userScrollEnabled = false,
                 key = { AppTab.entries[it].name },
-                beyondBoundsPageCount = 1 // don't forget state of other page
+                beyondBoundsPageCount = AppTab.entries.size // don't forget state of other pages
             ) { page ->
                 when (AppTab.entries[page]) {
                     AppTab.Download ->
@@ -51,6 +54,9 @@ fun App() {
 
                     AppTab.DownloadedVideos ->
                         DownloadedVideosScreen(Modifier.fillMaxSize(), downloadManager)
+
+                    AppTab.Configuration ->
+                        ConfigurationScreen(Modifier.fillMaxSize())
                 }
             }
             BottomNavigation(modifier = Modifier.fillMaxWidth()) {
@@ -74,6 +80,5 @@ fun App() {
 //  - Separate screen for video playback (just full-screen - maybe just immediately enter AVPlayer full-screen mode?)
 //  - Notarize and create AltStore source
 //  - yt-dlp backend
-//  - Configurable Piped instance
 //  - Design icon
 //  - Add "share to EmptyPipe" iOS action
