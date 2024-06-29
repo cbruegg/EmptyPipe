@@ -79,3 +79,4 @@ fun App() {
 //  - yt-dlp backend
 //  - Configurable Piped instance
 //  - BEFORE SOURCE PUBLICATION: WIPE "***REMOVED***" FROM GIT HISTORY
+//  - Design icon

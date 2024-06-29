@@ -32,7 +32,8 @@ class DownloadManager {
         val title: String,
         val id: String,
         val videoMimeType: String,
-        val audioMimeType: String
+        val audioMimeType: String,
+        val thumbnail: Path
     )
 
     private val fs = FileSystem.SYSTEM
@@ -70,7 +71,8 @@ class DownloadManager {
                         title = fs.read(videoDir / TITLE_FILE_NAME) { readUtf8() },
                         id = videoDir.name.removePrefix(VIDEO_DIR_PREFIX),
                         videoMimeType = videoMimeType,
-                        audioMimeType = audioMimeType
+                        audioMimeType = audioMimeType,
+                        thumbnail = videoDir / THUMBNAIL_FILE_NAME
                     )
                 }
         }
