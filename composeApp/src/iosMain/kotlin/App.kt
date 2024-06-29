@@ -206,45 +206,22 @@ fun VideoPlayer(
     videoMimeType: String,
     audioMimeType: String
 ) {
-    val playerItem = remember(videoUrl, audioUrl) {
-        val videoAsset = AVURLAsset.URLAssetWithURL(
-            videoUrl, mapOf(AVURLAssetOverrideMIMETypeKey to videoMimeType)
-        )
-        val audioAsset = AVURLAsset.URLAssetWithURL(
-            audioUrl, mapOf(AVURLAssetOverrideMIMETypeKey to audioMimeType)
-        )
-        val duration = videoAsset.duration
-        val composition = AVMutableComposition()
-
-        val videoAssetTrack =
-            videoAsset.tracksWithMediaType(AVMediaTypeVideo).getOrNull(0) as AVAssetTrack?
-                ?: error("Could not find video track")
-        val audioAssetTrack =
-            audioAsset.tracksWithMediaType(AVMediaTypeAudio).getOrNull(0) as AVAssetTrack?
-                ?: error("Could not find audio track")
-
-        val videoTrack =
-            composition.addMutableTrackWithMediaType(AVMediaTypeVideo, kCMPersistentTrackID_Invalid)
-                ?: error("Could not add video track")
-        videoTrack.insertTimeRange(
-            CMTimeRangeMake(kCMTimeZero.readValue(), duration),
-            videoAssetTrack,
-            kCMTimeZero.readValue(),
-            null
-        )
-
-        val audioTrack =
-            composition.addMutableTrackWithMediaType(AVMediaTypeAudio, kCMPersistentTrackID_Invalid)
-                ?: error("Could not add audio track")
-        audioTrack.insertTimeRange(
-            CMTimeRangeMake(kCMTimeZero.readValue(), duration),
-            audioAssetTrack,
-            kCMTimeZero.readValue(),
-            null
-        )
-
-        AVPlayerItem.playerItemWithAsset(composition)
+    val playerItemResult = remember(videoUrl, videoMimeType, audioUrl, audioMimeType) {
+        createPlayerItem(videoUrl, videoMimeType, audioUrl, audioMimeType)
     }
+    when (playerItemResult) {
+        PlayerItemResult.Failure.VideoTrack -> {
+            Text("Incompatible video track format!")
+            return
+        }
+        PlayerItemResult.Failure.AudioTrack -> {
+            Text("Incompatible audio track format!")
+            return
+        }
+        is PlayerItemResult.Success -> {} // continue
+    }
+
+    val playerItem = playerItemResult.playerItem
     val player = remember(playerItem) { AVPlayer(playerItem) }
     val playerLayer = remember { AVPlayerLayer() }
     val avPlayerViewController = remember {
@@ -280,6 +257,58 @@ fun VideoPlayer(
         },
         modifier = modifier
     )
+}
+
+sealed interface PlayerItemResult {
+    data class Success(val playerItem: AVPlayerItem) : PlayerItemResult
+    enum class Failure : PlayerItemResult {
+        VideoTrack, AudioTrack
+    }
+}
+@OptIn(ExperimentalForeignApi::class)
+private fun createPlayerItem(
+    videoUrl: NSURL,
+    videoMimeType: String,
+    audioUrl: NSURL,
+    audioMimeType: String
+): PlayerItemResult {
+    val videoAsset = AVURLAsset.URLAssetWithURL(
+        videoUrl, mapOf(AVURLAssetOverrideMIMETypeKey to videoMimeType)
+    )
+    val audioAsset = AVURLAsset.URLAssetWithURL(
+        audioUrl, mapOf(AVURLAssetOverrideMIMETypeKey to audioMimeType)
+    )
+    val duration = videoAsset.duration
+    val composition = AVMutableComposition()
+
+    val videoAssetTrack =
+        videoAsset.tracksWithMediaType(AVMediaTypeVideo).getOrNull(0) as AVAssetTrack?
+            ?: return PlayerItemResult.Failure.VideoTrack
+    val audioAssetTrack =
+        audioAsset.tracksWithMediaType(AVMediaTypeAudio).getOrNull(0) as AVAssetTrack?
+            ?: return PlayerItemResult.Failure.AudioTrack
+
+    val videoTrack =
+        composition.addMutableTrackWithMediaType(AVMediaTypeVideo, kCMPersistentTrackID_Invalid)
+            ?:return PlayerItemResult.Failure.VideoTrack
+    videoTrack.insertTimeRange(
+        CMTimeRangeMake(kCMTimeZero.readValue(), duration),
+        videoAssetTrack,
+        kCMTimeZero.readValue(),
+        null
+    )
+
+    val audioTrack =
+        composition.addMutableTrackWithMediaType(AVMediaTypeAudio, kCMPersistentTrackID_Invalid)
+            ?: return PlayerItemResult.Failure.AudioTrack
+    audioTrack.insertTimeRange(
+        CMTimeRangeMake(kCMTimeZero.readValue(), duration),
+        audioAssetTrack,
+        kCMTimeZero.readValue(),
+        null
+    )
+
+    return PlayerItemResult.Success(AVPlayerItem.playerItemWithAsset(composition))
 }
 
 @OptIn(ExperimentalMaterialApi::class)
