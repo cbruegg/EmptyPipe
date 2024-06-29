@@ -174,7 +174,8 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
         }
 
         VideoPlayer(
-            modifier = Modifier.fillMaxWidth().height(120.dp),
+            modifier = Modifier.fillMaxWidth()
+                .height(180.dp), // TODO Set height to video aspect ratio
             selectedVideoUrl,
             selectedAudioUrl,
             video.videoMimeType,
@@ -215,8 +216,6 @@ fun VideoPlayer(
         val duration = videoAsset.duration
         val composition = AVMutableComposition()
 
-        println("a")
-
         val videoAssetTrack =
             videoAsset.tracksWithMediaType(AVMediaTypeVideo).getOrNull(0) as AVAssetTrack?
                 ?: error("Could not find video track")
@@ -234,8 +233,6 @@ fun VideoPlayer(
             null
         )
 
-        println("b")
-
         val audioTrack =
             composition.addMutableTrackWithMediaType(AVMediaTypeAudio, kCMPersistentTrackID_Invalid)
                 ?: error("Could not add audio track")
@@ -246,15 +243,18 @@ fun VideoPlayer(
             null
         )
 
-        println("c")
-
         AVPlayerItem.playerItemWithAsset(composition)
     }
     val player = remember(playerItem) { AVPlayer(playerItem) }
     val playerLayer = remember { AVPlayerLayer() }
-    val avPlayerViewController = remember { AVPlayerViewController() }
+    val avPlayerViewController = remember {
+        AVPlayerViewController().apply {
+            showsPlaybackControls = true
+            allowsPictureInPicturePlayback = true
+            canStartPictureInPictureAutomaticallyFromInline = true
+        }
+    }
     avPlayerViewController.player = player
-    avPlayerViewController.showsPlaybackControls = true
 
     playerLayer.player = player
     // Use a UIKitView to integrate with your existing UIKit views
