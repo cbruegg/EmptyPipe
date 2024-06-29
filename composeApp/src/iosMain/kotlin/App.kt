@@ -2,6 +2,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Button
@@ -22,7 +23,33 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.unit.dp
+import kotlinx.cinterop.CValue
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.readValue
 import kotlinx.coroutines.launch
+import platform.AVFoundation.AVAssetTrack
+import platform.AVFoundation.AVMediaTypeAudio
+import platform.AVFoundation.AVMediaTypeVideo
+import platform.AVFoundation.AVMutableComposition
+import platform.AVFoundation.AVPlayer
+import platform.AVFoundation.AVPlayerItem
+import platform.AVFoundation.AVPlayerLayer
+import platform.AVFoundation.AVURLAsset
+import platform.AVFoundation.AVURLAssetOverrideMIMETypeKey
+import platform.AVFoundation.addMutableTrackWithMediaType
+import platform.AVFoundation.play
+import platform.AVFoundation.tracksWithMediaType
+import platform.AVKit.AVPlayerViewController
+import platform.CoreGraphics.CGRect
+import platform.CoreMedia.CMTimeRangeMake
+import platform.CoreMedia.kCMPersistentTrackID_Invalid
+import platform.CoreMedia.kCMTimeZero
+import platform.Foundation.NSURL
+import platform.QuartzCore.CATransaction
+import platform.QuartzCore.kCATransactionDisableActions
+import platform.UIKit.UIView
 
 @Composable
 fun App() {
@@ -128,17 +155,122 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
         downloadedVideos = downloadManager.findDownloads()
     }
 
+    // TODO Move this out?
+    var selectedVideo: DownloadManager.VideoDownload? by remember { mutableStateOf(null) }
+    selectedVideo?.let { video ->
+        val selectedVideoUrl = NSURL.fileURLWithPath(video.video.toString())
+        val selectedAudioUrl = NSURL.fileURLWithPath(video.audio.toString())
+        LaunchedEffect(selectedVideoUrl) {
+            println(selectedVideoUrl)
+        }
+
+        VideoPlayer(
+            modifier = Modifier.fillMaxWidth().height(120.dp),
+            selectedVideoUrl,
+            selectedAudioUrl,
+            video.videoMimeType,
+            video.audioMimeType
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
         items(downloadedVideos ?: emptyList(), key = { it.id }) { video ->
             Button(onClick = {
                 println(video.title)
+                selectedVideo = video
             }) {
                 Text(video.title)
             }
         }
     }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@Composable
+fun VideoPlayer(
+    modifier: Modifier,
+    videoUrl: NSURL,
+    audioUrl: NSURL,
+    videoMimeType: String,
+    audioMimeType: String
+) {
+    val playerItem = remember(videoUrl, audioUrl) {
+        val videoAsset = AVURLAsset.URLAssetWithURL(
+            videoUrl, mapOf(AVURLAssetOverrideMIMETypeKey to videoMimeType)
+        )
+        val audioAsset = AVURLAsset.URLAssetWithURL(
+            audioUrl, mapOf(AVURLAssetOverrideMIMETypeKey to audioMimeType)
+        )
+        val duration = videoAsset.duration
+        val composition = AVMutableComposition()
+
+        println("a")
+
+        val videoAssetTrack =
+            videoAsset.tracksWithMediaType(AVMediaTypeVideo).getOrNull(0) as AVAssetTrack?
+                ?: error("Could not find video track")
+        val audioAssetTrack =
+            audioAsset.tracksWithMediaType(AVMediaTypeAudio).getOrNull(0) as AVAssetTrack?
+                ?: error("Could not find audio track")
+
+        val videoTrack =
+            composition.addMutableTrackWithMediaType(AVMediaTypeVideo, kCMPersistentTrackID_Invalid)
+                ?: error("Could not add video track")
+        videoTrack.insertTimeRange(
+            CMTimeRangeMake(kCMTimeZero.readValue(), duration),
+            videoAssetTrack,
+            kCMTimeZero.readValue(),
+            null
+        )
+
+        println("b")
+
+        val audioTrack =
+            composition.addMutableTrackWithMediaType(AVMediaTypeAudio, kCMPersistentTrackID_Invalid)
+                ?: error("Could not add audio track")
+        audioTrack.insertTimeRange(
+            CMTimeRangeMake(kCMTimeZero.readValue(), duration),
+            audioAssetTrack,
+            kCMTimeZero.readValue(),
+            null
+        )
+
+        println("c")
+
+        AVPlayerItem.playerItemWithAsset(composition)
+    }
+    val player = remember(playerItem) { AVPlayer(playerItem) }
+    val playerLayer = remember { AVPlayerLayer() }
+    val avPlayerViewController = remember { AVPlayerViewController() }
+    avPlayerViewController.player = player
+    avPlayerViewController.showsPlaybackControls = true
+
+    playerLayer.player = player
+    // Use a UIKitView to integrate with your existing UIKit views
+    UIKitView(
+        factory = {
+            // Create a UIView to hold the AVPlayerLayer
+            val playerContainer = UIView()
+            playerContainer.addSubview(avPlayerViewController.view)
+            // Return the playerContainer as the root UIView
+            playerContainer
+        },
+        onResize = { view: UIView, rect: CValue<CGRect> ->
+            CATransaction.begin()
+            CATransaction.setValue(true, kCATransactionDisableActions)
+            view.layer.setFrame(rect)
+            playerLayer.setFrame(rect)
+            avPlayerViewController.view.layer.frame = rect
+            CATransaction.commit()
+        },
+        update = { view ->
+            player.play()
+            avPlayerViewController.player!!.play()
+        },
+        modifier = modifier
+    )
 }
 
 @OptIn(ExperimentalMaterialApi::class)

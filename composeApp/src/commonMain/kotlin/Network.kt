@@ -115,6 +115,7 @@ data class VideoStream(
     override val format: String,
     override val quality: String,
     override val codec: String?,
+    override val mimeType: String,
     val videoOnly: Boolean
 ) : Stream
 
@@ -123,7 +124,8 @@ data class AudioStream(
     override val url: String,
     override val format: String,
     override val quality: String,
-    override val codec: String?
+    override val codec: String?,
+    override val mimeType: String
 ) : Stream
 
 interface Stream {
@@ -131,4 +133,5 @@ interface Stream {
     val format: String
     val quality: String
     val codec: String?
+    val mimeType: String
 }
