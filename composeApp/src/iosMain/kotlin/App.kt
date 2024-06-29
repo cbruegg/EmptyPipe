@@ -60,17 +60,26 @@ fun App() {
         var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
         var downloadFailure: Exception? by remember { mutableStateOf(null) }
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            var fetchDownloadOptionsError: Exception? by remember { mutableStateOf(null) }
             Button(onClick = {
                 scope.launch {
-                    downloadOptions = fetchYouTubeDownloadOptions(
-                        url = "https://www.youtube.com/watch?v=v_normU8p-I",
-                        appConfiguration = AppConfiguration(
-                            pipedApiInstanceUrl = "***REMOVED***"
+                    fetchDownloadOptionsError = null
+                    try {
+                        downloadOptions = fetchYouTubeDownloadOptions(
+                            url = "https://www.youtube.com/watch?v=v_normU8p-I",
+                            appConfiguration = AppConfiguration(
+                                pipedApiInstanceUrl = "***REMOVED***"
+                            )
                         )
-                    )
+                    } catch (e: Exception) {
+                        fetchDownloadOptionsError = null
+                    }
                 }
             }) {
                 Text("Click me!")
+            }
+            fetchDownloadOptionsError?.let { error ->
+                Text("Error: ${error.message}")
             }
             AnimatedVisibility(downloadOptions != null) {
                 downloadOptions?.let { options ->
