@@ -21,6 +21,7 @@ private const val VIDEO_FILE_NAME = "video.dat"
 private const val AUDIO_FILE_NAME = "audio.dat"
 private const val TITLE_FILE_NAME = "title.txt"
 private const val MIME_TYPE_FILE_NAME = "mime_type.txt"
+private const val THUMBNAIL_FILE_NAME = "thumbnail.jpg"
 
 private const val VIDEO_DIR_PREFIX = "video-"
 
@@ -79,7 +80,8 @@ class DownloadManager {
         val video: Path,
         val audio: Path,
         val title: Path,
-        val mimeType: Path
+        val mimeType: Path,
+        val thumbnail: Path
     )
 
     private fun prepareDownload(videoId: String): VideoDownloadFileDescriptor {
@@ -88,10 +90,11 @@ class DownloadManager {
         val audioFile = videoDir / AUDIO_FILE_NAME
         val titleFile = videoDir / TITLE_FILE_NAME
         val mimeTypeFile = videoDir / MIME_TYPE_FILE_NAME
+        val thumbnailFile = videoDir / THUMBNAIL_FILE_NAME
 
         fs.createDirectories(videoDir)
 
-        return VideoDownloadFileDescriptor(videoFile, audioFile, titleFile, mimeTypeFile)
+        return VideoDownloadFileDescriptor(videoFile, audioFile, titleFile, mimeTypeFile, thumbnailFile)
     }
 
     suspend fun download(
@@ -101,7 +104,7 @@ class DownloadManager {
         videoProgressPercentageCallback: (Int) -> Unit,
         audioProgressPercentageCallback: (Int) -> Unit
     ) {
-        val (videoFile, audioFile, titleFile, mimeTypeFile) = prepareDownload(options.videoId)
+        val (videoFile, audioFile, titleFile, mimeTypeFile, thumbnailFile) = prepareDownload(options.videoId)
 
         try {
             fs.write(titleFile) {
@@ -118,15 +121,19 @@ class DownloadManager {
                 val videoSink = this
                 fs.write(audioFile) {
                     val audioSink = this
-                    downloadYouTubeVideo(
-                        options,
-                        selectedVideoStreamIndex,
-                        selectedAudioStreamIndex,
-                        videoSink,
-                        audioSink,
-                        videoProgressPercentageCallback,
-                        audioProgressPercentageCallback
-                    )
+                    fs.write(thumbnailFile) {
+                        val thumbnailSink = this
+                        downloadYouTubeVideo(
+                            options,
+                            selectedVideoStreamIndex,
+                            selectedAudioStreamIndex,
+                            videoSink,
+                            audioSink,
+                            thumbnailSink,
+                            videoProgressPercentageCallback,
+                            audioProgressPercentageCallback
+                        )
+                    }
                 }
             }
 

@@ -73,7 +73,6 @@ fun App() {
 // TODO:
 //  - Clean up code
 //  - Separate screen for video playback (just full-screen - maybe just immediately enter AVPlayer full-screen mode?)
-//  - URL bar to paste video URL
 //  - Feature to delete videos
 //  - Show video thumbnail
 //  - Notarize and create AltStore source

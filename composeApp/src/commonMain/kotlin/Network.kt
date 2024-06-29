@@ -53,8 +53,9 @@ suspend fun downloadYouTubeVideo(
     pipedVideoDownloadOptions: PipedVideoDownloadOptions,
     videoStreamIdx: Int,
     audioStreamIdx: Int,
-    videoStreamChannel: BufferedSink,
-    audioStreamChannel: BufferedSink,
+    videoStreamSink: BufferedSink,
+    audioStreamSink: BufferedSink,
+    thumbnailSink: BufferedSink,
     videoProgressPercentageCallback: (Int) -> Unit,
     audioProgressPercentageCallback: (Int) -> Unit
 ) {
@@ -73,7 +74,7 @@ suspend fun downloadYouTubeVideo(
                     }
                 }
             }.execute { httpResponse ->
-                httpResponse.bodyAsChannel().copyTo(videoStreamChannel)
+                httpResponse.bodyAsChannel().copyTo(videoStreamSink)
             }
         }
 
@@ -87,7 +88,13 @@ suspend fun downloadYouTubeVideo(
                     }
                 }
             }.execute { httpResponse ->
-                httpResponse.bodyAsChannel().copyTo(audioStreamChannel)
+                httpResponse.bodyAsChannel().copyTo(audioStreamSink)
+            }
+        }
+
+        launch {
+            http.prepareGet(pipedVideoDownloadOptions.metadata.thumbnailUrl).execute { httpResponse ->
+                httpResponse.bodyAsChannel().copyTo(thumbnailSink)
             }
         }
     }
@@ -114,7 +121,8 @@ data class PipedVideoDownloadOptions(
 data class PipedVideoMetadata(
     val title: String,
     val videoStreams: List<VideoStream>,
-    val audioStreams: List<AudioStream>
+    val audioStreams: List<AudioStream>,
+    val thumbnailUrl: String
 )
 
 @Serializable
