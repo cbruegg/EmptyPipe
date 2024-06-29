@@ -1,5 +1,13 @@
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
@@ -33,6 +41,20 @@ class DownloadManager {
         NSUserDomainMask,
         true
     )[0] as NSString).toString().toPath()
+
+    private val changeEvents =
+        MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    fun monitorDownloads(scope: CoroutineScope): StateFlow<List<VideoDownload>?> {
+        return changeEvents
+            .onSubscription { emit(Unit) }
+            .map { findDownloads() }
+            .stateIn(
+                scope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
+    }
 
     suspend fun findDownloads(): List<VideoDownload> {
         return withContext(Dispatchers.IO) {
@@ -81,30 +103,38 @@ class DownloadManager {
     ) {
         val (videoFile, audioFile, titleFile, mimeTypeFile) = prepareDownload(options.videoId)
 
-        fs.write(titleFile) {
-            writeUtf8(options.title)
-        }
-
-        fs.write(mimeTypeFile) {
-            val videoMimeType = options.metadata.videoStreams[selectedVideoStreamIndex].mimeType
-            val audioMimeType = options.metadata.audioStreams[selectedAudioStreamIndex].mimeType
-            writeUtf8("$videoMimeType $audioMimeType")
-        }
-
-        fs.write(videoFile) {
-            val videoSink = this
-            fs.write(audioFile) {
-                val audioSink = this
-                downloadYouTubeVideo(
-                    options,
-                    selectedVideoStreamIndex,
-                    selectedAudioStreamIndex,
-                    videoSink,
-                    audioSink,
-                    videoProgressPercentageCallback,
-                    audioProgressPercentageCallback
-                )
+        try {
+            fs.write(titleFile) {
+                writeUtf8(options.title)
             }
+
+            fs.write(mimeTypeFile) {
+                val videoMimeType = options.metadata.videoStreams[selectedVideoStreamIndex].mimeType
+                val audioMimeType = options.metadata.audioStreams[selectedAudioStreamIndex].mimeType
+                writeUtf8("$videoMimeType $audioMimeType")
+            }
+
+            fs.write(videoFile) {
+                val videoSink = this
+                fs.write(audioFile) {
+                    val audioSink = this
+                    downloadYouTubeVideo(
+                        options,
+                        selectedVideoStreamIndex,
+                        selectedAudioStreamIndex,
+                        videoSink,
+                        audioSink,
+                        videoProgressPercentageCallback,
+                        audioProgressPercentageCallback
+                    )
+                }
+            }
+
+            changeEvents.emit(Unit)
+        } catch (e: Exception) {
+            val videoDir = videoFile.parent!!
+            fs.deleteRecursively(videoDir)
+            throw e
         }
     }
 }

@@ -11,9 +11,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import platform.Foundation.NSURL
 
 @Composable
@@ -24,12 +26,8 @@ fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: Downl
 }
 @Composable
 private fun AvailableFiles(downloadManager: DownloadManager) {
-    var downloadedVideos: List<DownloadManager.VideoDownload>? by remember { mutableStateOf(null) }
-
-    // TODO Refresh whenever a download completes
-    LaunchedEffect(Unit) {
-        downloadedVideos = downloadManager.findDownloads()
-    }
+    val scope = rememberCoroutineScope()
+    val downloadedVideos by downloadManager.monitorDownloads(scope).collectAsStateWithLifecycle()
 
     // TODO Move this out?
     var selectedVideo: DownloadManager.VideoDownload? by remember { mutableStateOf(null) }
