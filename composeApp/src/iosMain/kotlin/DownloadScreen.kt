@@ -25,25 +25,35 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
 
     var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
     var downloadFailure: Exception? by remember { mutableStateOf(null) }
+    var fetchDownloadOptionsError: Exception? by remember { mutableStateOf(null) }
+    var url by remember { mutableStateOf("") }
+    // Good test URL: https://www.youtube.com/watch?v=v_normU8p-I
 
     Column(modifier) {
-        var fetchDownloadOptionsError: Exception? by remember { mutableStateOf(null) }
+        TextField(
+            value = url,
+            onValueChange = { url = it },
+            label = { Text("URL") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Button(onClick = {
             scope.launch {
                 fetchDownloadOptionsError = null
                 try {
                     downloadOptions = fetchYouTubeDownloadOptions(
-                        url = "https://www.youtube.com/watch?v=v_normU8p-I",
+                        url = url,
                         appConfiguration = AppConfiguration(
                             pipedApiInstanceUrl = "***REMOVED***"
                         )
                     )
-                } catch (e: Exception) {
                     fetchDownloadOptionsError = null
+                } catch (e: Exception) {
+                    fetchDownloadOptionsError = e
                 }
             }
         }) {
-            Text("Click me!")
+            Text("Fetch download options")
         }
         fetchDownloadOptionsError?.let { error ->
             Text("Error: ${error.message}")
@@ -52,7 +62,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
             downloadOptions?.let { options ->
                 Column(
                     Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.Start
                 ) {
                     var selectedVideoIndex by remember { mutableStateOf(0) }
                     var selectedAudioIndex by remember { mutableStateOf(0) }
