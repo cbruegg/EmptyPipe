@@ -37,7 +37,15 @@ suspend fun fetchYouTubeDownloadOptions(
     return PipedVideoDownloadOptions(
         title = pipedVideoMetadata.title,
         videoId = videoId,
-        metadata = pipedVideoMetadata // TODO Filter out unusable options on iOS
+        metadata = pipedVideoMetadata.withoutIncompatibleStreams()
+    )
+}
+
+// iOS does not support WEBM as of 2024
+private fun PipedVideoMetadata.withoutIncompatibleStreams(): PipedVideoMetadata {
+    return copy(
+        videoStreams = videoStreams.filter { !it.format.contains("WEBM", ignoreCase = true) },
+        audioStreams = audioStreams.filter { !it.format.contains("WEBM", ignoreCase = true) }
     )
 }
 
