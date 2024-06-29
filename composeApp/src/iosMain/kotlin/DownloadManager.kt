@@ -146,4 +146,10 @@ class DownloadManager {
             throw e
         }
     }
+
+    fun delete(toDelete: VideoDownload) {
+        val videoDir = toDelete.video.parent!!
+        fs.deleteRecursively(videoDir)
+        changeEvents.tryEmit(Unit)
+    }
 }

@@ -71,10 +71,7 @@ fun App() {
 }
 
 // TODO:
-//  - Clean up code
 //  - Separate screen for video playback (just full-screen - maybe just immediately enter AVPlayer full-screen mode?)
-//  - Feature to delete videos
-//  - Show video thumbnail
 //  - Notarize and create AltStore source
 //  - yt-dlp backend
 //  - Configurable Piped instance

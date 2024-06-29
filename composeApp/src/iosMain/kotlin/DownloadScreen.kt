@@ -30,7 +30,6 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
     var downloadFailure: Exception? by remember { mutableStateOf(null) }
     var fetchDownloadOptionsError: Exception? by remember { mutableStateOf(null) }
     var url by remember { mutableStateOf("") }
-    // Good test URL: https://www.youtube.com/watch?v=v_normU8p-I
 
     Column(modifier) {
         TextField(
@@ -113,11 +112,9 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
                                     selectedVideoIndex,
                                     selectedAudioIndex,
                                     videoProgressPercentageCallback = { percentage ->
-                                        println("Video $percentage %")
                                         videoDownloadProgress = percentage
                                     },
                                     audioProgressPercentageCallback = { percentage ->
-                                        println("Audio $percentage %")
                                         audioDownloadProgress = percentage
                                     }
                                 )

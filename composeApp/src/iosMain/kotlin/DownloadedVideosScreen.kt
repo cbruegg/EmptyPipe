@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +43,7 @@ fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: Downl
         AvailableFiles(downloadManager)
     }
 }
+
 @Composable
 private fun AvailableFiles(downloadManager: DownloadManager) {
     val scope = rememberCoroutineScope()
@@ -63,16 +68,20 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
         )
     }
 
+    var videoStagedForDeletion by remember { mutableStateOf<DownloadManager.VideoDownload?>(null) }
+
+    videoStagedForDeletion?.let { toDelete ->
+        ConfirmDeletionDialog(
+            toDelete,
+            { videoStagedForDeletion = null },
+            { downloadManager.delete(toDelete) }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
         items(downloadedVideos ?: emptyList(), key = { it.id }) { video ->
-//            Button(onClick = {
-//                println(video.title)
-//                selectedVideo = video
-//            }) {
-//                Text(video.title)
-//            }
             Row(
                 modifier = Modifier.fillMaxWidth().clickable {
                     println(video.title)
@@ -80,11 +89,43 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
                 },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ImageFromDisk(modifier = Modifier.width(160.dp).height(90.dp).padding(8.dp), path = video.thumbnail)
-                Text(video.title)
+                ImageFromDisk(
+                    modifier = Modifier.width(160.dp).height(90.dp).padding(4.dp),
+                    path = video.thumbnail
+                )
+                Text(video.title, modifier = Modifier.weight(1f).padding(4.dp))
+                Button(onClick = { videoStagedForDeletion = video }, modifier = Modifier.padding(4.dp)) {
+                    Icon(Icons.Sharp.Delete, contentDescription = "Delete")
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ConfirmDeletionDialog(
+    toDelete: DownloadManager.VideoDownload,
+    dismiss: () -> Unit,
+    delete: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text("Confirm Deletion") },
+        text = { Text("Are you sure you want to delete the video \"${toDelete.title}\"? This action cannot be undone.") },
+        confirmButton = {
+            Button(onClick = {
+                delete()
+                dismiss()
+            }) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            Button(onClick = dismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -99,7 +140,8 @@ private fun ImageFromDisk(modifier: Modifier = Modifier, path: Path) {
         Image(
             bitmap = it,
             contentDescription = null,
-            modifier = modifier)
+            modifier = modifier
+        )
     } ?: run {
         Box(modifier)
     }
