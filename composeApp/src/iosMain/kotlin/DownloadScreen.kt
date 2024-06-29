@@ -47,7 +47,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
                         downloadOptions = fetchYouTubeDownloadOptions(
                             url = url,
                             appConfiguration = AppConfiguration(
-                                pipedApiInstanceUrl = "***REMOVED***"
+                                pipedApiInstanceUrl = "https://pipedapi.kavin.rocks"
                             )
                         )
                         fetchDownloadOptionsError = null

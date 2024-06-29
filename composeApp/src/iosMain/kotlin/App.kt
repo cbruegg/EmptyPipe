@@ -75,6 +75,5 @@ fun App() {
 //  - Notarize and create AltStore source
 //  - yt-dlp backend
 //  - Configurable Piped instance
-//  - BEFORE SOURCE PUBLICATION: WIPE "***REMOVED***" FROM GIT HISTORY
 //  - Design icon
 //  - Add "share to EmptyPipe" iOS action
