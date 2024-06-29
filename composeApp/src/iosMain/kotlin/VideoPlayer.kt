@@ -1,5 +1,6 @@
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
@@ -16,7 +17,10 @@ import platform.AVFoundation.AVPlayerLayer
 import platform.AVFoundation.AVURLAsset
 import platform.AVFoundation.AVURLAssetOverrideMIMETypeKey
 import platform.AVFoundation.addMutableTrackWithMediaType
+import platform.AVFoundation.currentItem
+import platform.AVFoundation.pause
 import platform.AVFoundation.play
+import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.tracksWithMediaType
 import platform.AVKit.AVPlayerViewController
 import platform.CoreGraphics.CGRect
@@ -53,7 +57,7 @@ fun VideoPlayer(
     }
 
     val playerItem = playerItemResult.playerItem
-    val player = remember(playerItem) { AVPlayer(playerItem) }
+    val player = remember { AVPlayer(playerItem) }
     val playerLayer = remember { AVPlayerLayer() }
     val avPlayerViewController = remember {
         AVPlayerViewController().apply {
@@ -64,6 +68,11 @@ fun VideoPlayer(
     }
     avPlayerViewController.player = player
 
+    LaunchedEffect(playerItem) {
+        if (player.currentItem != playerItem) {
+            player.replaceCurrentItemWithPlayerItem(playerItem)
+        }
+    }
     playerLayer.player = player
     // Use a UIKitView to integrate with your existing UIKit views
     UIKitView(
@@ -84,7 +93,9 @@ fun VideoPlayer(
         },
         update = { view ->
             player.play()
-            avPlayerViewController.player!!.play()
+        },
+        onRelease = { view ->
+            player.pause()
         },
         modifier = modifier
     )
