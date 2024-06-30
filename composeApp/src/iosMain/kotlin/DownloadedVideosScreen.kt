@@ -3,6 +3,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,33 +47,31 @@ import kotlin.math.roundToInt
 @Composable
 fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: DownloadManager) {
     Column(modifier) {
-        AvailableFiles(downloadManager)
+        var selectedVideo: DownloadManager.VideoDownload? by remember { mutableStateOf(null) }
+        selectedVideo?.let { video ->
+            val selectedVideoUrl = NSURL.fileURLWithPath(video.video.toString())
+            val selectedAudioUrl = NSURL.fileURLWithPath(video.audio.toString())
+
+            VideoPlayer(
+                modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+                selectedVideoUrl,
+                selectedAudioUrl,
+                video.videoMimeType,
+                video.audioMimeType
+            )
+        }
+
+        AvailableFiles(downloadManager, onVideoSelected = { selectedVideo = it })
     }
 }
 
 @Composable
-private fun AvailableFiles(downloadManager: DownloadManager) {
+private fun AvailableFiles(
+    downloadManager: DownloadManager,
+    onVideoSelected: (DownloadManager.VideoDownload) -> Unit
+) {
     val scope = rememberCoroutineScope()
     val downloadedVideos by downloadManager.monitorDownloads(scope).collectAsStateWithLifecycle()
-
-    // TODO Move this out?
-    var selectedVideo: DownloadManager.VideoDownload? by remember { mutableStateOf(null) }
-    selectedVideo?.let { video ->
-        val selectedVideoUrl = NSURL.fileURLWithPath(video.video.toString())
-        val selectedAudioUrl = NSURL.fileURLWithPath(video.audio.toString())
-        LaunchedEffect(selectedVideoUrl) {
-            println(selectedVideoUrl)
-        }
-
-        VideoPlayer(
-            modifier = Modifier.fillMaxWidth()
-                .height(180.dp), // TODO Set height to video aspect ratio
-            selectedVideoUrl,
-            selectedAudioUrl,
-            video.videoMimeType,
-            video.audioMimeType
-        )
-    }
 
     var videoStagedForDeletion by remember { mutableStateOf<DownloadManager.VideoDownload?>(null) }
 
@@ -89,10 +88,7 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
     ) {
         items(downloadedVideos ?: emptyList(), key = { it.id }) { video ->
             Row(
-                modifier = Modifier.fillMaxWidth().clickable {
-                    println(video.title)
-                    selectedVideo = video
-                },
+                modifier = Modifier.fillMaxWidth().clickable { onVideoSelected(video) },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ImageFromDisk(
@@ -117,15 +113,6 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
             }
         }
     }
-}
-
-private fun formatBytes(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val digitGroups = min(units.size, (log10(bytes.toDouble()) / log10(1024.0)).toInt())
-    val value = bytes / pow(1024.0, digitGroups.toDouble())
-    val roundedValue = (value * 10).roundToInt() / 10.0 // Round to one decimal place
-    return "$roundedValue ${units[digitGroups]}"
 }
 
 @Composable
@@ -171,4 +158,13 @@ private fun ImageFromDisk(modifier: Modifier = Modifier, path: Path) {
     } ?: run {
         Box(modifier)
     }
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val digitGroups = min(units.size, (log10(bytes.toDouble()) / log10(1024.0)).toInt())
+    val value = bytes / pow(1024.0, digitGroups.toDouble())
+    val roundedValue = (value * 10).roundToInt() / 10.0 // Round to one decimal place
+    return "$roundedValue ${units[digitGroups]}"
 }

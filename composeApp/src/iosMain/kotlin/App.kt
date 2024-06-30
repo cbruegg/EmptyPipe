@@ -77,7 +77,6 @@ fun App() {
 }
 
 // TODO:
-//  - Separate screen for video playback (just full-screen - maybe just immediately enter AVPlayer full-screen mode?)
 //  - Notarize and create AltStore source
 //  - yt-dlp backend
 //  - Design icon
