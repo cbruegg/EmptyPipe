@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -28,6 +29,7 @@ import platform.Foundation.NSUserDefaults
 @Composable
 fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManager) {
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
     var downloadFailure: Exception? by remember { mutableStateOf(null) }
@@ -44,6 +46,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
 
         Row {
             Button(onClick = {
+                focusManager.clearFocus()
                 scope.launch {
                     fetchDownloadOptionsError = null
                     try {
@@ -63,6 +66,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
             if (url.isNotEmpty()) {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         url = ""
                         downloadOptions = null
                         fetchDownloadOptionsError = null
