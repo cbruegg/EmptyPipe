@@ -9,11 +9,13 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okio.BufferedSink
 import kotlin.concurrent.AtomicInt
+import kotlin.coroutines.coroutineContext
 
 private val http = HttpClient {
     install(ContentNegotiation) {
@@ -103,7 +105,7 @@ suspend fun downloadYouTubeVideo(
 
 private suspend fun ByteReadChannel.copyTo(dst: BufferedSink) {
     val buf = ByteArray(8192)
-    while (true) {
+    while (coroutineContext.isActive) {
         val bytesRead = readAvailable(buf)
         if (bytesRead == -1) {
             break
