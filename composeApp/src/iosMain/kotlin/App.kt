@@ -79,5 +79,4 @@ fun App() {
 // TODO:
 //  - Notarize and create AltStore source
 //  - yt-dlp backend
-//  - Design icon
 //  - Add "share to EmptyPipe" iOS action
