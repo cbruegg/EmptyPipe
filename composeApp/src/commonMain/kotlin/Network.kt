@@ -8,6 +8,7 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -105,7 +106,11 @@ suspend fun downloadYouTubeVideo(
 
 private suspend fun ByteReadChannel.copyTo(dst: BufferedSink) {
     val buf = ByteArray(8192)
-    while (coroutineContext.isActive) {
+    while (true) {
+        if (!coroutineContext.isActive) {
+            throw CancellationException()
+        }
+
         val bytesRead = readAvailable(buf)
         if (bytesRead == -1) {
             break
