@@ -25,9 +25,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -36,6 +38,10 @@ import okio.FileSystem
 import okio.Path
 import org.jetbrains.skia.Image
 import platform.Foundation.NSURL
+import platform.posix.pow
+import kotlin.math.log10
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 @Composable
 fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: DownloadManager) {
@@ -93,13 +99,33 @@ private fun AvailableFiles(downloadManager: DownloadManager) {
                     modifier = Modifier.width(160.dp).height(90.dp).padding(4.dp),
                     path = video.thumbnail
                 )
-                Text(video.title, modifier = Modifier.weight(1f).padding(4.dp))
-                Button(onClick = { videoStagedForDeletion = video }, modifier = Modifier.padding(4.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(video.title, modifier = Modifier.padding(4.dp))
+                    Text(
+                        formatBytes(video.bytesOnDisk),
+                        modifier = Modifier.padding(4.dp),
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+                Button(
+                    onClick = { videoStagedForDeletion = video },
+                    modifier = Modifier.padding(4.dp)
+                ) {
                     Icon(Icons.Sharp.Delete, contentDescription = "Delete")
                 }
             }
         }
     }
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val digitGroups = min(units.size, (log10(bytes.toDouble()) / log10(1024.0)).toInt())
+    val value = bytes / pow(1024.0, digitGroups.toDouble())
+    val roundedValue = (value * 10).roundToInt() / 10.0 // Round to one decimal place
+    return "$roundedValue ${units[digitGroups]}"
 }
 
 @Composable

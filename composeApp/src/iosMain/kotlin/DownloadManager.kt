@@ -33,7 +33,8 @@ class DownloadManager {
         val id: String,
         val videoMimeType: String,
         val audioMimeType: String,
-        val thumbnail: Path
+        val thumbnail: Path,
+        val bytesOnDisk: Long
     )
 
     private val fs = FileSystem.SYSTEM
@@ -45,7 +46,10 @@ class DownloadManager {
     )[0] as NSString).toString().toPath()
 
     private val changeEvents =
-        MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
 
     fun monitorDownloads(scope: CoroutineScope): StateFlow<List<VideoDownload>?> {
         return changeEvents
@@ -72,7 +76,8 @@ class DownloadManager {
                         id = videoDir.name.removePrefix(VIDEO_DIR_PREFIX),
                         videoMimeType = videoMimeType,
                         audioMimeType = audioMimeType,
-                        thumbnail = videoDir / THUMBNAIL_FILE_NAME
+                        thumbnail = videoDir / THUMBNAIL_FILE_NAME,
+                        bytesOnDisk = fs.sizeOfDirectory(videoDir)
                     )
                 }
         }
@@ -96,7 +101,13 @@ class DownloadManager {
 
         fs.createDirectories(videoDir)
 
-        return VideoDownloadFileDescriptor(videoFile, audioFile, titleFile, mimeTypeFile, thumbnailFile)
+        return VideoDownloadFileDescriptor(
+            videoFile,
+            audioFile,
+            titleFile,
+            mimeTypeFile,
+            thumbnailFile
+        )
     }
 
     suspend fun download(
@@ -153,3 +164,6 @@ class DownloadManager {
         changeEvents.tryEmit(Unit)
     }
 }
+
+private fun FileSystem.sizeOfDirectory(dir: Path): Long =
+    listRecursively(dir, followSymlinks = false).sumOf { metadata(it).size ?: 0 }
