@@ -24,13 +24,14 @@ private val http = HttpClient {
     }
 }
 
-private val youtubeVideoIdRegex = Regex("""https://(?:.*\.)youtube.com/watch\?.*v=([\w-]+)""")
+private val videoIdRegex = Regex("""watch\?.*v=([\w-]+)""")
 
 suspend fun fetchYouTubeDownloadOptions(
     url: String,
     appConfiguration: AppConfiguration
 ): PipedVideoDownloadOptions {
-    val videoId = youtubeVideoIdRegex.find(url)?.groupValues?.get(1) ?: error("Invalid URL: $url")
+    check(url.startsWith("http")) { "Invalid URL: $url" }
+    val videoId = videoIdRegex.find(url)?.groupValues?.get(1) ?: error("Invalid URL: $url")
     val pipedVideoMetadataUrl = "${appConfiguration.pipedApiInstanceUrl}/streams/$videoId"
     println("Getting metadata from $pipedVideoMetadataUrl")
     val pipedVideoMetadata = http.get(pipedVideoMetadataUrl).body<PipedVideoMetadata>()
