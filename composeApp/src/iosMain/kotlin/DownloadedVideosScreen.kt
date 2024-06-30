@@ -44,6 +44,8 @@ import kotlin.math.log10
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+// TODO Fix bug that resets the entire screen state when selecting a new video
+
 @Composable
 fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: DownloadManager) {
     Column(modifier) {
@@ -61,14 +63,18 @@ fun DownloadedVideosScreen(modifier: Modifier = Modifier, downloadManager: Downl
             )
         }
 
-        AvailableFiles(downloadManager, onVideoSelected = { selectedVideo = it })
+        AvailableFiles(downloadManager,
+            onVideoSelected = { selectedVideo = it },
+            onDeleted = { if (selectedVideo == it) selectedVideo = null }
+        )
     }
 }
 
 @Composable
 private fun AvailableFiles(
     downloadManager: DownloadManager,
-    onVideoSelected: (DownloadManager.VideoDownload) -> Unit
+    onVideoSelected: (DownloadManager.VideoDownload) -> Unit,
+    onDeleted: (DownloadManager.VideoDownload) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val downloadedVideos by downloadManager.monitorDownloads(scope).collectAsStateWithLifecycle()
@@ -77,9 +83,12 @@ private fun AvailableFiles(
 
     videoStagedForDeletion?.let { toDelete ->
         ConfirmDeletionDialog(
-            toDelete,
-            { videoStagedForDeletion = null },
-            { downloadManager.delete(toDelete) }
+            toDelete = toDelete,
+            dismiss = { videoStagedForDeletion = null },
+            delete = {
+                downloadManager.delete(toDelete)
+                onDeleted(toDelete)
+            }
         )
     }
 
