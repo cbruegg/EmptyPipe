@@ -20,6 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import platform.Foundation.NSUserDefaults
 
@@ -88,6 +90,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
 
                     var videoDownloadProgress by remember { mutableStateOf(-1) }
                     var audioDownloadProgress by remember { mutableStateOf(-1) }
+                    var downloadJob: Job? by remember { mutableStateOf(null) }
 
                     StreamSelectorDropdown(
                         videoExpanded,
@@ -101,31 +104,45 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
                         options.metadata.audioStreams,
                         selectedAudioIndex,
                         { selectedAudioIndex = it })
-                    Button(onClick = {
-                        scope.launch {
-                            try {
-                                downloadFailure = null
-                                videoDownloadProgress = 0
-                                audioDownloadProgress = 0
-                                downloadManager.download(
-                                    options,
-                                    selectedVideoIndex,
-                                    selectedAudioIndex,
-                                    videoProgressPercentageCallback = { percentage ->
-                                        videoDownloadProgress = percentage
-                                    },
-                                    audioProgressPercentageCallback = { percentage ->
-                                        audioDownloadProgress = percentage
+                    Row {
+                        Button(
+                            enabled = videoDownloadProgress == -1 && audioDownloadProgress == -1,
+                            onClick = {
+                                downloadJob = scope.launch {
+                                    try {
+                                        downloadFailure = null
+                                        videoDownloadProgress = 0
+                                        audioDownloadProgress = 0
+                                        downloadManager.download(
+                                            options,
+                                            selectedVideoIndex,
+                                            selectedAudioIndex,
+                                            videoProgressPercentageCallback = { percentage ->
+                                                videoDownloadProgress = percentage
+                                            },
+                                            audioProgressPercentageCallback = { percentage ->
+                                                audioDownloadProgress = percentage
+                                            }
+                                        )
+                                    } catch (e: CancellationException) {
+                                        // nothing to do
+                                    } catch (e: Exception) {
+                                        downloadFailure = e
+                                    } finally {
+                                        videoDownloadProgress = -1
+                                        audioDownloadProgress = -1
                                     }
-                                )
-                            } catch (e: Exception) {
-                                downloadFailure = e
+                                }
+                            },
+                            content = { Text("Download") })
+                        if (videoDownloadProgress != -1 || audioDownloadProgress != -1) {
+                            Button(
+                                onClick = { downloadJob?.cancel() },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text("Cancel")
                             }
-                            videoDownloadProgress = -1
-                            audioDownloadProgress = -1
                         }
-                    }) {
-                        Text("Download")
                     }
                     downloadFailure?.let { failure ->
                         Text("Download failed: ${failure.message}")
