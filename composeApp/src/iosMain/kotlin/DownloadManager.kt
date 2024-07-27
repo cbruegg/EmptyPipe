@@ -117,7 +117,9 @@ class DownloadManager {
         videoProgressPercentageCallback: (Int) -> Unit,
         audioProgressPercentageCallback: (Int) -> Unit
     ) {
-        val (videoFile, audioFile, titleFile, mimeTypeFile, thumbnailFile) = prepareDownload(options.videoId)
+        val videoDownloadFileDescriptor = prepareDownload(options.videoId)
+        println("Downloading to $videoDownloadFileDescriptor")
+        val (videoFile, audioFile, titleFile, mimeTypeFile, thumbnailFile) = videoDownloadFileDescriptor
 
         try {
             fs.write(titleFile) {
