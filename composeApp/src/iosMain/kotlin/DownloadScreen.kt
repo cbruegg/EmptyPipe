@@ -32,6 +32,7 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
     val focusManager = LocalFocusManager.current
 
     var downloadOptions: PipedVideoDownloadOptions? by remember { mutableStateOf(null) }
+    var fetchingDownloadOptionsJob: Job? by remember { mutableStateOf(null) }
     var downloadFailure: Exception? by remember { mutableStateOf(null) }
     var fetchDownloadOptionsError: Exception? by remember { mutableStateOf(null) }
     var url by remember { mutableStateOf("") }
@@ -45,26 +46,32 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
         )
 
         Row {
-            Button(onClick = {
-                focusManager.clearFocus()
-                scope.launch {
-                    fetchDownloadOptionsError = null
-                    try {
-                        val appConfiguration =
-                            AppConfiguration.loadFrom(NSUserDefaults.standardUserDefaults)
-                        check(!appConfiguration.pipedApiInstanceUrl.isNullOrBlank()) { "Piped instance URL is not set" }
-
-                        downloadOptions = fetchYouTubeDownloadOptions(url, appConfiguration)
+            Button(enabled = fetchingDownloadOptionsJob == null,
+                onClick = {
+                    focusManager.clearFocus()
+                    fetchingDownloadOptionsJob = scope.launch {
                         fetchDownloadOptionsError = null
-                    } catch (e: Exception) {
-                        fetchDownloadOptionsError = e
+                        try {
+                            val appConfiguration =
+                                AppConfiguration.loadFrom(NSUserDefaults.standardUserDefaults)
+                            check(!appConfiguration.pipedApiInstanceUrl.isNullOrBlank()) { "Piped instance URL is not set" }
+
+                            downloadOptions = fetchYouTubeDownloadOptions(url, appConfiguration)
+                            fetchDownloadOptionsError = null
+                        } catch (e: CancellationException) {
+                            println("Cancelled fetching download options")
+                        } catch (e: Exception) {
+                            fetchDownloadOptionsError = e
+                        } finally {
+                            fetchingDownloadOptionsJob = null
+                        }
                     }
-                }
-            }) {
+                }) {
                 Text("Fetch download options")
             }
             if (url.isNotEmpty()) {
                 Button(
+                    enabled = fetchingDownloadOptionsJob == null,
                     onClick = {
                         focusManager.clearFocus()
                         url = ""
@@ -75,6 +82,16 @@ fun DownloadScreen(modifier: Modifier = Modifier, downloadManager: DownloadManag
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text("Clear")
+                }
+            }
+            if (fetchingDownloadOptionsJob != null) {
+                Button(
+                    onClick = {
+                        fetchingDownloadOptionsJob?.cancel()
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Text("Cancel")
                 }
             }
         }
